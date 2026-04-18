@@ -39,6 +39,7 @@ const nextConfig = {
   // Optimize production builds
   poweredByHeader: false,
   reactStrictMode: true,
+  output: "standalone",
 };
 
 export default nextConfig;
