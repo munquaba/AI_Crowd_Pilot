@@ -1,7 +1,42 @@
+/**
+ * @module chat/route
+ * @description AI Chat API endpoint for the AI Crowd Pilot application.
+ * Handles user queries with intent detection, rate limiting, and input sanitization.
+ * Returns contextual, data-driven recommendations based on real-time stadium data.
+ */
 import { NextResponse } from "next/server";
 import { getCurrentDataSnapshot } from "@/data/stadiumData";
+import { sanitizeInput, getCrowdEmoji } from "@/lib/utils";
 
-// Intent detection keywords
+/**
+ * In-memory rate limiter. Tracks request timestamps per IP.
+ * Allows MAX_REQUESTS per WINDOW_MS milliseconds.
+ * @type {Map<string, number[]>}
+ */
+const rateLimitMap = new Map();
+const MAX_REQUESTS = 20;
+const WINDOW_MS = 60_000; // 1 minute
+
+/**
+ * Checks if a given IP has exceeded the rate limit.
+ * @param {string} ip - Client IP address
+ * @returns {boolean} True if rate limited
+ */
+function isRateLimited(ip) {
+  const now = Date.now();
+  const timestamps = rateLimitMap.get(ip) || [];
+  const recent = timestamps.filter((t) => now - t < WINDOW_MS);
+  rateLimitMap.set(ip, recent);
+  if (recent.length >= MAX_REQUESTS) return true;
+  recent.push(now);
+  return false;
+}
+
+/**
+ * Intent detection keyword map.
+ * Maps user intent categories to their associated keywords.
+ * @type {Record<string, string[]>}
+ */
 const INTENTS = {
   navigation: ["navigate", "route", "direction", "way", "reach", "get to", "go to", "path", "how to reach", "where is gate", "find gate", "exit"],
   food: ["food", "eat", "hungry", "stall", "restaurant", "snack", "burger", "pizza", "taco", "noodle", "hot dog", "ice cream", "drink", "menu"],
@@ -12,6 +47,11 @@ const INTENTS = {
   help: ["help", "what can you do", "assist", "features", "commands"],
 };
 
+/**
+ * Detects user intent by scoring keywords against the message.
+ * @param {string} message - User's chat message
+ * @returns {string} Detected intent category or "general"
+ */
 function detectIntent(message) {
   const lower = message.toLowerCase();
   const scores = {};
@@ -27,16 +67,21 @@ function detectIntent(message) {
   return bestIntent[0];
 }
 
+/**
+ * Generates a contextual response based on intent and real-time stadium data.
+ * @param {string} intent - Detected intent category
+ * @param {string} message - Original user message
+ * @param {object} data - Current stadium data snapshot
+ * @returns {string} Formatted response string with markdown
+ */
 function generateResponse(intent, message, data) {
   const lower = message.toLowerCase();
 
   switch (intent) {
     case "navigation": {
-      // Find relevant routes
       let fromLocation = null;
       let toLocation = null;
 
-      // Try to detect specific locations in message
       for (const gate of data.gates) {
         if (lower.includes(gate.name.toLowerCase())) {
           if (!fromLocation) fromLocation = gate.name;
@@ -75,7 +120,6 @@ function generateResponse(intent, message, data) {
         }
       }
 
-      // General navigation advice
       const leastCrowdedGate = data.gates.reduce((a, b) => (a.density < b.density ? a : b));
       const leastCrowdedRoutes = data.routes.filter((r) => r.crowd === "low").slice(0, 3);
       let response = `🧭 **Navigation Suggestions:**\n\n`;
@@ -173,7 +217,6 @@ function generateResponse(intent, message, data) {
     }
 
     default: {
-      // General response with overview
       const bestGate = data.gates.reduce((a, b) => (a.density < b.density ? a : b));
       const bestStall = data.stalls.reduce((a, b) => (a.waitTime < b.waitTime ? a : b));
       const bestWashroom = data.washrooms.reduce((a, b) => (a.waitTime < b.waitTime ? a : b));
@@ -187,21 +230,41 @@ function generateResponse(intent, message, data) {
   }
 }
 
-function getCrowdEmoji(crowd) {
-  switch (crowd) {
-    case "low": return "🟢";
-    case "medium": return "🟡";
-    case "high": return "🔴";
-    default: return "⚪";
-  }
-}
-
+/**
+ * POST handler for the chat API endpoint.
+ * Validates input, applies rate limiting, detects intent, and returns a response.
+ * @param {Request} request - Incoming HTTP request
+ * @returns {Promise<NextResponse>} JSON response with AI message
+ */
 export async function POST(request) {
   try {
-    const { message } = await request.json();
+    // Rate limiting
+    const ip = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || "anonymous";
+    if (isRateLimited(ip)) {
+      return NextResponse.json(
+        { error: "Too many requests. Please wait a moment." },
+        { status: 429 }
+      );
+    }
 
-    if (!message || typeof message !== "string") {
-      return NextResponse.json({ error: "Message is required" }, { status: 400 });
+    const body = await request.json();
+    const rawMessage = body?.message;
+
+    // Input validation
+    if (!rawMessage || typeof rawMessage !== "string") {
+      return NextResponse.json(
+        { error: "Message is required and must be a string." },
+        { status: 400 }
+      );
+    }
+
+    // Sanitize input
+    const message = sanitizeInput(rawMessage, 500);
+    if (message.length === 0) {
+      return NextResponse.json(
+        { error: "Message cannot be empty." },
+        { status: 400 }
+      );
     }
 
     const data = getCurrentDataSnapshot();
@@ -217,6 +280,10 @@ export async function POST(request) {
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    return NextResponse.json({ error: "Failed to process message" }, { status: 500 });
+    console.error("[Chat API Error]:", error?.message || error);
+    return NextResponse.json(
+      { error: "Failed to process message. Please try again." },
+      { status: 500 }
+    );
   }
 }

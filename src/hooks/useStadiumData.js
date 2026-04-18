@@ -21,6 +21,7 @@ export function useStadiumData(intervalMs = 5000) {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchData();
     const interval = setInterval(fetchData, intervalMs);
     return () => clearInterval(interval);

@@ -98,7 +98,7 @@ export default function SmartRecommendations({ data, userLocation }) {
             <h3 className="text-sm font-semibold text-white">What should I do now?</h3>
             <p className="text-[11px] text-gray-500">
               Smart suggestions based on real-time data
-              {userLocation && <span> • You're at {userLocation}</span>}
+              {userLocation && <span> • You&apos;re at {userLocation}</span>}
             </p>
           </div>
         </div>

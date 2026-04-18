@@ -1,36 +1,108 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# AI Crowd Pilot 🏟️
 
-## Getting Started
+> AI-powered stadium assistant for real-time crowd monitoring, smart navigation, queue management, and personalized guidance.  
+> Built for **PromptWars Hackathon**.
 
-First, run the development server:
+## Features
+
+- 🧠 **Smart Recommendations** — AI-generated actionable insights (BEST / AVOID / RECOMMENDED)
+- 🤖 **AI Chat Assistant** — Natural language queries for food, washrooms, navigation, gates, and crowds
+- 🏟️ **Interactive Stadium Map** — Clickable SVG with density-colored sections and gates
+- 🧭 **Smart Navigation** — Route finder prioritizing lower crowd levels
+- ⏱️ **Queue Management** — Food stalls and washrooms ranked by wait time with GO NOW / SKIP
+- 📍 **User Location** — Personalized recommendations based on your position
+- 🔄 **Real-Time Updates** — Data refreshes every 5 seconds with live indicators
+
+## Tech Stack
+
+| Category | Technology |
+|----------|-----------|
+| Framework | Next.js 16 (App Router) |
+| UI | React 19 + Tailwind CSS v4 |
+| Animations | Framer Motion |
+| Testing | Jest + React Testing Library |
+| Deployment | Google Cloud Run |
+
+## Quick Start
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# Open http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Scripts
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+| Script | Description |
+|--------|-------------|
+| `npm run dev` | Start development server |
+| `npm run build` | Production build |
+| `npm test` | Run tests |
+| `npm run test:coverage` | Run tests with coverage |
+| `npm run lint` | Lint code |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Architecture
 
-## Learn More
+```
+src/
+├── app/
+│   ├── api/
+│   │   ├── chat/route.js        # AI chat with intent detection + rate limiting
+│   │   └── stadium/route.js     # Stadium data API with simulation
+│   ├── globals.css              # Design system (glassmorphism, animations, a11y)
+│   ├── layout.js                # Root layout with SEO + skip-to-content
+│   └── page.js                  # Main page with lazy loading + error boundaries
+├── components/
+│   ├── AlertBanner.jsx          # Rotating alert strip
+│   ├── ChatAssistant.jsx        # Full-screen modal chat (safe rendering, ARIA)
+│   ├── Dashboard.jsx            # Stats, gates, queues overview
+│   ├── ErrorBoundary.jsx        # Graceful error handling
+│   ├── NavigationPanel.jsx      # Route finder
+│   ├── QueueManagement.jsx      # Food/washroom queues
+│   ├── SmartRecommendations.jsx # "What should I do now?" panel
+│   ├── StadiumMap.jsx           # Interactive SVG stadium map
+│   └── UserLocationSelector.jsx # Location picker dropdown
+├── data/
+│   └── stadiumData.js           # Mock data + simulation engine
+├── hooks/
+│   └── useStadiumData.js        # Auto-refresh hook (5s interval)
+└── lib/
+    └── utils.js                 # Shared utilities (sanitization, parsing, colors)
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Security
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- CSP, X-Frame-Options, XSS Protection headers via `next.config.mjs`
+- Input sanitization on all API endpoints
+- Rate limiting (20 req/min per IP)
+- Safe rendering (no `dangerouslySetInnerHTML`)
+- X-Powered-By header removed
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Accessibility
 
-## Deploy on Vercel
+- Semantic HTML (`<nav>`, `<main>`, `<section>`, `<header>`)
+- ARIA labels on all interactive elements
+- `role="dialog"` on chat modal with `aria-modal`
+- Keyboard navigation (Escape to close, skip-to-content)
+- `prefers-reduced-motion` support
+- `focus-visible` outlines
+- `aria-live` regions for real-time updates
+- WCAG AA color contrast
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Testing
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npm test          # Run all tests
+npm test:coverage # With coverage report
+```
+
+Tests cover:
+- Input sanitization (XSS prevention)
+- Markdown parsing (safe rendering)
+- Crowd color/style helpers
+- Stadium data structure & snapshot isolation
+- Debounce utility
+
+## License
+
+MIT
