@@ -5,6 +5,8 @@
 
 ## Features
 
+🔴 **[View Live Application on Google Cloud Run](https://ai-crowd-pilot-454472739569.us-central1.run.app)**
+
 - 🧠 **Smart Recommendations** — AI-generated actionable insights (BEST / AVOID / RECOMMENDED)
 - 🤖 **AI Chat Assistant** — Natural language queries for food, washrooms, navigation, gates, and crowds
 - 🏟️ **Interactive Stadium Map** — Clickable SVG with density-colored sections and gates
